@@ -33,12 +33,11 @@ Handshake is active-high for both `VALID` and `ACK`.
 
 ### Sender sequence
 
-1. Set `VALID = 0` 
-2. Wait for `ACK = 0`
-3. Drive data onto `DATA[n]`
-4. Set `VALID = 1`
-5. Wait for `ACK = 1`
-6. Set `VALID = 0`
+1. Drive data onto `DATA[n]`
+2. Set `VALID = 1`
+3. Wait for `ACK = 1`
+4. Set `VALID = 0`
+5. Wait for `ACK = 0`
 
 ### Receiver sequence
 
@@ -46,10 +45,10 @@ Handshake is active-high for both `VALID` and `ACK`.
 2. Wait for `VALID = 1`
 3. Sample `DATA[n]`
 4. Set `ACK = 1`
-5. Wait for `VALID = 0`
+5. Wait for a short while for level detecttion by other party
 6. Set `ACK = 0`
 
-This gives a deterministic ready/accept cycle and avoids races when both peers follow the same edge order.
+This gives a deterministic ready/accept cycle and avoids races when both peers follow the same order.
 
 ## Sequence Diagrams
 
@@ -82,7 +81,7 @@ sequenceDiagram
 
 	Note over S,R: Byte = [high_nibble][low_nibble]
 
-	rect rgb(240, 248, 255)
+	rect rgb(127, 127, 127)
 	Note over S,R: Nibble 1 (high)
 	S->>S: Wait ACK=0
 	S->>B: Drive high_nibble
@@ -93,7 +92,7 @@ sequenceDiagram
 	R->>S: ACK = 0
 	end
 
-	rect rgb(245, 255, 245)
+	rect rgb(127, 127, 127)
 	Note over S,R: Nibble 2 (low)
 	S->>S: Wait ACK=0
 	S->>B: Drive low_nibble
