@@ -107,10 +107,11 @@ class GPIO(Transport):
         if DEBUG:
             print("waiting for ACK high")
         self._wait_until_ack_is(1)
-        if DEBUG:
-            print("setting VALID low")
-        self.valid.value(0)
-        time.sleep_ms(self.MIN_HOLD_TIME_MS)  # Hold valid low long enough for slow client to see it
+        # if DEBUG:
+        #     print("setting VALID low")
+        # self.valid.value(0)
+        # self._wait_until_ack_is(0)
+        # time.sleep_ms(self.MIN_HOLD_TIME_MS)  # Hold valid low long enough for slow client to see it
 
     def _read_byte(self):
         """Read a single byte from the parallel interface."""
@@ -121,12 +122,12 @@ class GPIO(Transport):
         self._set_data_pins_input()
 
         # Resync: ensure we start only after VALID is low
-        if not self._wait_until_valid_is(0):
-            return None
+        # if not self._wait_until_valid_is(0):
+        #     return None
 
         # Wait for VALID high
-        if DEBUG:
-            self._log_pin_states()
+        # if DEBUG:
+        #     self._log_pin_states()
         if not self._wait_until_valid_is(1):
             return None
         if DEBUG:
@@ -144,21 +145,24 @@ class GPIO(Transport):
             print("Read nibble:", nibble)
         self.ack.value(1)
         time.sleep_ms(self.MIN_HOLD_TIME_MS)  # Hold ACK high long enough for slow client to see it
-        if DEBUG:
-            self._log_pin_states()
-        self._wait_until_valid_is(0)
-        self.ack.value(0)
-        time.sleep_ms(self.MIN_HOLD_TIME_MS)  # Hold ACK low long enough for slow client to see it
+        # if DEBUG:
+        #     self._log_pin_states()
+        # self._wait_until_valid_is(0)
+        # self.ack.value(0)
+        # time.sleep_ms(self.MIN_HOLD_TIME_MS)  # Hold ACK low long enough for slow client to see it
         if DEBUG:
             self._log_pin_states()
         return nibble
 
     def set_write_mode(self):
         self._set_data_pins_output()
+        time.sleep_ms(self.MIN_HOLD_TIME_MS)  # hold valid low for the otehr end to chnage direction
+        self._wait_until_ack_is(0)  # Ensure ACK is low before writing
         return
     
     def set_read_mode(self):
         self._set_data_pins_input()
+        self._wait_until_valid_is(0)  # Ensure VALID is low before reading
         return
 
     def write(self, data):

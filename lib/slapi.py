@@ -4,6 +4,7 @@ import socket
 import ssl
 import sys
 import json
+import time
 
 from transport import Transport
 from config import load_config
@@ -95,13 +96,16 @@ def readline():
 
 def error(status, msg):
     """HTTP error response"""
+    print(f"HTTP/1.1 {status}{DOUBLE_CRLF}{msg}")
     transport_write(f"HTTP/1.1 {status}{DOUBLE_CRLF}{msg}{CRLF}".encode())
 
 def slapi_error(code, msg):
     """SLAPI protocol error response"""
+    print(f"SLAPI/1.0 {code} {msg}", file=sys.stderr)
     transport_write(f"SLAPI/1.0 {code} {msg}{CRLF}".encode())
 
 def ok():
+    print("OK", file=sys.stderr)
     transport_write(f"OK{CRLF}".encode())
 
 def apply_jsonpath(data, path):
@@ -396,11 +400,11 @@ def send_http(method, path, headers, body, redirected_host=None, _redirects=0, _
         req += f"{k}: {v}{CRLF}"
     req += CRLF
 
-    debug_write(b"--- Sending Request ---\r\n")
+    debug_write(b"\r\n--- Sending Request ---\r\n")
     # debug_write(req.encode())             don't show potentially sensitive headers in debug log
     s.send(req.encode())
     if body:
-        debug_write(b"--- Sending Body ---\r\n")
+        debug_write(b"\r\n--- Sending Body ---\r\n")
         debug_write(body)
         s.send(body)
 
@@ -502,14 +506,14 @@ def start_slapi():
 
     global transport
 
-    print("SLAPI started", file=sys.stderr)
-    print(transport)
-
     # Send start header to show we are here:
+    print("SLAPI/1.0 READY", file=sys.stderr)
     transport_write(b"SLAPI/1.0 READY\r\n")
-
+    
     while True:
         transport.set_read_mode()
+        print('<= ',end='', file=sys.stderr)
+        time.sleep_ms(100)  # Give other end a chance to change direction
         line = readline()
         if not line:
             continue
@@ -524,6 +528,8 @@ def start_slapi():
                 method, path, _ = line.split(" ", 2)
                 headers, body = read_http_request(line, method)
                 transport.set_write_mode()                  # prevent spurious gpio valid lines
+                time.sleep_ms(100)  # Give other end a chance to change direction
+                print('=> ',end='', file=sys.stderr)
                 send_http(method, path, headers, body)
             except ValueError as e:
                 # Bad request format
@@ -532,4 +538,7 @@ def start_slapi():
                 sys.print_exception(e)
                 slapi_error("500", str(e))
         else:
+            transport.set_write_mode()                  # prevent spurious gpio valid lines
+            time.sleep_ms(100)  # Give other end a chance to change direction
+            print('=> ',end='', file=sys.stderr)
             handle_command(line)
